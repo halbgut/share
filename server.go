@@ -5,16 +5,17 @@ import (
 )
 
 func start(a args) error {
-	mux := http.NewServeMux()
 	f := files{
 		dir:             a.dir,
 		disallowPersist: a.disallowPersist,
 		indexFile:       a.indexFile,
 	}
-	mux.HandleFunc("/", handleRequest(&f))
+	fileh := handleRequest(&f)
+	authh := authorize(a.key, fileh)
+	logh := logger(authh)
 	s := &http.Server{
 		Addr:    a.addr,
-		Handler: logger(mux),
+		Handler: logh,
 	}
 	err := s.ListenAndServe()
 	return err

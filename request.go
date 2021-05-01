@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func handleRequest(f *files) func(w http.ResponseWriter, r *http.Request) {
+func handleRequest(f *files) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		var err error
