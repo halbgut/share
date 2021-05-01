@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 )
@@ -22,7 +23,9 @@ func handleRequest(f *files) func(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 			return
 		}
-		if err != nil {
+		if errors.Is(err, ErrNotFound) {
+			http.NotFound(w, r)
+		} else if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			res := fmt.Sprintf("Request failed: %v\n", err)
 			w.Write([]byte(res))

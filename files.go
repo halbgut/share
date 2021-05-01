@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"sync"
@@ -98,13 +99,16 @@ func (f *files) Get(ctx context.Context, rpath string, w io.Writer) error {
 
 func (f *files) getFromFile(ctx context.Context, rpath string, w io.Writer) error {
 	fp := path.Join(f.dir, rpath)
-	buf, err := os.ReadFile(fp)
-	if err != nil {
-		return fmt.Errorf("Failed to read file: %w", err)
+	fl, err := os.Open(fp)
+	if _, ok := err.(*fs.PathError); ok {
+		return ErrNotFound
 	}
-	_, err = w.Write(buf)
 	if err != nil {
-		return fmt.Errorf("Failed to write response: %w", err)
+		return fmt.Errorf("Failed to open file: %w", err)
+	}
+	_, err = io.Copy(w, fl)
+	if err != nil {
+		return fmt.Errorf("Failed to send response: %w", err)
 	}
 	return nil
 }
