@@ -11,11 +11,13 @@ func handleRequest(f *files) func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		var err error
 		path := r.URL.Path
+		q := r.URL.Query()
+		persist := len(q["persist"]) > 0
 		switch r.Method {
 		case http.MethodGet:
 			err = f.Get(ctx, path, w)
 		case http.MethodPost:
-			err = f.Post(ctx, path, r.Body)
+			err = f.Post(ctx, path, r.Body, persist)
 			if err == nil {
 				_, err = w.Write([]byte{})
 			}

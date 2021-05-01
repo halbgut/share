@@ -6,7 +6,10 @@ import (
 
 func start(a args) error {
 	mux := http.NewServeMux()
-	f := newFiles(a.dir)
+	f := files{
+		dir:             a.dir,
+		disallowPersist: a.disallowPersist,
+	}
 	mux.HandleFunc("/", handleRequest(&f))
 	s := &http.Server{
 		Addr:    a.addr,

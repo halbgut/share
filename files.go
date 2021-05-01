@@ -12,8 +12,9 @@ import (
 )
 
 type files struct {
-	dir     string
-	waiters sync.Map
+	dir             string
+	waiters         sync.Map
+	disallowPersist bool
 }
 
 type waiter struct {
@@ -21,21 +22,19 @@ type waiter struct {
 	data  chan []byte
 }
 
-func newFiles(dir string) files {
-	return files{
-		dir: dir,
-	}
-}
-
-func (f *files) Post(ctx context.Context, rpath string, r io.ReadCloser) error {
+func (f *files) Post(ctx context.Context, rpath string, r io.ReadCloser, persist bool) error {
 	defer r.Close()
 	if err := validate(rpath); err != nil {
 		return fmt.Errorf("Invalid path: %w", err)
 	}
+	if !f.disallowPersist && persist {
+		err := f.postToFile(ctx, rpath, r)
+		return err
+	}
 	buf := make([]byte, 4*1024)
 	n, err := r.Read(buf)
 	if errors.Is(err, io.EOF) {
-		return f.postToFile(ctx, rpath, buf[:n])
+		return f.postChunkToFile(ctx, rpath, buf[:n])
 	}
 	if err != nil {
 		return fmt.Errorf("Failed to read request: %w", err)
@@ -43,7 +42,7 @@ func (f *files) Post(ctx context.Context, rpath string, r io.ReadCloser) error {
 	return f.postToWaiter(ctx, rpath, buf, n, r)
 }
 
-func (f *files) postToFile(ctx context.Context, rpath string, buf []byte) error {
+func (f *files) postChunkToFile(ctx context.Context, rpath string, buf []byte) error {
 	fp := path.Join(f.dir, rpath)
 	err := os.WriteFile(fp, buf, 0666)
 	if err != nil {
@@ -52,7 +51,20 @@ func (f *files) postToFile(ctx context.Context, rpath string, buf []byte) error 
 	return nil
 }
 
-func (f *files) postToWaiter(ctx context.Context, rpath string, buf []byte, end int, r io.ReadCloser) error {
+func (f *files) postToFile(ctx context.Context, rpath string, r io.Reader) error {
+	fp := path.Join(f.dir, rpath)
+	fl, err := os.Create(fp)
+	if err != nil {
+		return fmt.Errorf("Failed to create new file: %w", err)
+	}
+	_, err = io.Copy(fl, r)
+	if err != nil {
+		return fmt.Errorf("Failed to write file: %w", err)
+	}
+	return nil
+}
+
+func (f *files) postToWaiter(ctx context.Context, rpath string, buf []byte, end int, r io.Reader) error {
 	total := len(buf[:end])
 	_, ok := f.waiters.Load(rpath)
 	if ok {
