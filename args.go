@@ -8,12 +8,14 @@ var (
 	flagListen    = flag.String("listen", "[::1]:8080", "Specify what address and port to listen to")
 	flagDir       = flag.String("dir", ".", "Directory where to keep files")
 	flagNoPersist = flag.Bool("nopersist", false, "Disallow force persist files")
+	flagIndex     = flag.String("index", "", "Index file name")
 )
 
 type args struct {
 	dir             string
 	addr            string
 	disallowPersist bool
+	indexFile       string
 }
 
 func parseArgs() (args, error) {
@@ -22,5 +24,6 @@ func parseArgs() (args, error) {
 		dir:             *flagDir,
 		addr:            *flagListen,
 		disallowPersist: *flagNoPersist,
+		indexFile:       *flagIndex,
 	}, nil
 }

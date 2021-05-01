@@ -15,6 +15,7 @@ type files struct {
 	dir             string
 	waiters         sync.Map
 	disallowPersist bool
+	indexFile       string
 }
 
 type waiter struct {
@@ -24,6 +25,9 @@ type waiter struct {
 
 func (f *files) Post(ctx context.Context, rpath string, r io.ReadCloser, persist bool) error {
 	defer r.Close()
+	if rpath == f.indexFile {
+		return fmt.Errorf("Overwriting index file is not allowed")
+	}
 	if err := validate(rpath); err != nil {
 		return fmt.Errorf("Invalid path: %w", err)
 	}
@@ -97,6 +101,9 @@ func (f *files) postToWaiter(ctx context.Context, rpath string, buf []byte, end 
 }
 
 func (f *files) Get(ctx context.Context, rpath string, w io.Writer) error {
+	if rpath == "/" && len(f.indexFile) > 0 {
+		return f.getFromFile(ctx, f.indexFile, w)
+	}
 	if err := validate(rpath); err != nil {
 		return fmt.Errorf("Invalid path: %w", err)
 	}

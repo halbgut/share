@@ -9,6 +9,7 @@ func start(a args) error {
 	f := files{
 		dir:             a.dir,
 		disallowPersist: a.disallowPersist,
+		indexFile:       a.indexFile,
 	}
 	mux.HandleFunc("/", handleRequest(&f))
 	s := &http.Server{
